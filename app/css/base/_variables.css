@@ -1,0 +1,65 @@
+/* =========================================================================
+   VaderLabz TaskBoardAI — Design Tokens
+   MyStudioChannel "Media Broadcasting OS" aesthetic
+   ========================================================================= */
+:root {
+  /* Base surfaces */
+  --bg-main: #070708;
+  --bg-deep: #0b0b0e;
+  --header-bg: rgba(13, 13, 15, 0.85);
+
+  /* Studio Gold accent */
+  --studio-gold: #f5b841;
+  --studio-gold-soft: #e7a92e;
+  --studio-gold-glow: rgba(245, 184, 65, 0.15);
+
+  /* Glassmorphism */
+  --glass-bg: rgba(18, 18, 22, 0.45);
+  --glass-bg-strong: rgba(20, 20, 26, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.045);
+  --glass-gold-border: rgba(245, 184, 65, 0.08);
+
+  /* Typography colors */
+  --text-primary: #fbfbfb;
+  --text-secondary: #9f9fa9;
+  --text-tertiary: #6b6b73;
+  --text-gold: #f5b841;
+
+  /* Dynamic column hues (subtle washes) */
+  --column-todo: rgba(159, 159, 169, 0.03);
+  --column-ready: rgba(245, 184, 65, 0.025);
+  --column-in-progress: rgba(59, 130, 246, 0.03);
+  --column-done: rgba(16, 185, 129, 0.025);
+
+  /* Column header accent rails */
+  --rail-todo: rgba(159, 159, 169, 0.55);
+  --rail-ready: var(--studio-gold);
+  --rail-in-progress: #3b82f6;
+  --rail-done: #10b981;
+
+  /* Status signal colors */
+  --signal-online: #22c55e;
+  --signal-warn: #f5b841;
+  --signal-offline: #ef4444;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+
+  /* Spacing rhythm */
+  --gap-xs: 6px;
+  --gap-sm: 10px;
+  --gap-md: 16px;
+  --gap-lg: 24px;
+
+  /* Fonts */
+  --font-display: "Space Grotesk", "Geist", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  /* Elevation */
+  --shadow-panel: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
+  --shadow-card: 0 10px 30px -18px rgba(0, 0, 0, 0.9);
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-main">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070708" />
+    <meta
+      name="description"
+      content="TaskBoardAI — MyStudioChannel media broadcasting operating system. A cinematic, glassmorphic developer planning console."
+    />
+    <title>MyStudioChannel v9.0.0 — TaskBoardAI</title>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- ============================ HEADER ============================ -->
+      <header class="production-bar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="m10 8 4 2.5-4 2.5z" fill="currentColor" stroke="none" />
+              <path d="M7 21h10" />
+              <path d="M12 17v4" />
+            </svg>
+          </span>
+          <div class="brand-text">
+            <div id="project-name">
+              MyStudioChannel v9.0.0<span class="live-dot" aria-hidden="true"></span>
+            </div>
+            <button id="board-selector" class="board-switcher" type="button" title="Switch board">
+              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 4h6l2 3h8v12H4z" />
+              </svg>
+              <span id="board-file-label">.cursor/boards/msc-website-v9.json</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="copy-board-info-btn" class="ctrl-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            Copy
+          </button>
+          <button id="refresh-board-btn" class="ctrl-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /><path d="M3 21v-5h5" />
+            </svg>
+            Refresh
+          </button>
+          <button id="load-board-btn" class="ctrl-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" />
+            </svg>
+            Load
+          </button>
+          <button id="archive-board-btn" class="ctrl-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" />
+            </svg>
+            Archive
+          </button>
+          <button id="settings-btn" class="ctrl-btn icon-only" type="button" aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ========================== WORKSPACE ========================== -->
+      <main class="workspace">
+        <!-- Left: Next Steps -->
+        <aside class="panel" aria-label="Next steps">
+          <div class="panel-head">
+            <span class="panel-title">Next Steps</span>
+            <span class="panel-badge" id="next-steps-count">0</span>
+          </div>
+          <ol class="next-steps-list"></ol>
+          <div class="sidebar-footnote">guided by J.A.R.V.I.S. planning core</div>
+        </aside>
+
+        <!-- Center: Kanban Board -->
+        <section class="panel canvas" aria-label="Kanban board">
+          <div id="board">
+            <div class="board-loading">Initializing media bays…</div>
+          </div>
+        </section>
+
+        <!-- Right: Agent Activity Feed -->
+        <aside class="panel" aria-label="Agent activity feed">
+          <div class="panel-head">
+            <span class="panel-title">Agent Activity</span>
+            <span class="panel-badge">LIVE</span>
+          </div>
+          <ul class="activity-feed" id="activity-feed"></ul>
+        </aside>
+      </main>
+
+      <!-- ===================== FOOTER: J.A.R.V.I.S. ==================== -->
+      <footer class="command-bar">
+        <div class="jarvis-status">
+          <span class="jarvis-orb" aria-hidden="true">
+            <span class="wave-bar bar-1"></span>
+            <span class="wave-bar bar-2"></span>
+            <span class="wave-bar bar-3"></span>
+            <span class="wave-bar bar-4"></span>
+            <span class="wave-bar bar-5"></span>
+          </span>
+          <span class="jarvis-label">
+            <span class="title">J.A.R.V.I.S. Active</span>
+            <span class="sub" id="jarvis-sub">listening · agent CLI bridge</span>
+          </span>
+        </div>
+
+        <div class="bar-divider" aria-hidden="true"></div>
+
+        <div class="service-monitors" id="service-monitors" aria-label="Service status">
+          <!-- populated by app.js -->
+        </div>
+
+        <div class="quick-actions">
+          <button class="qa-btn" data-action="create-campaign" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m3 11 18-5v12L3 14v-3z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+            </svg>
+            Create Campaign
+          </button>
+          <button class="qa-btn" data-action="generate-image" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+            </svg>
+            Generate Image
+          </button>
+          <button class="qa-btn" data-action="verify-build" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            Verify Build
+          </button>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
