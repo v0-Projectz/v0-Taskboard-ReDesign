@@ -266,6 +266,38 @@ function wireControls(board) {
   document.querySelectorAll(".qa-btn").forEach((btn) => {
     btn.addEventListener("click", () => flashJarvis(`dispatching: ${btn.dataset.action}`))
   })
+
+  wireActivityCollapse()
+}
+
+/* -------------------- Agent Activity collapse -------------------------- */
+function setActivityCollapsed(collapsed) {
+  const workspace = document.querySelector(".workspace")
+  const panel = document.getElementById("activity-panel")
+  const collapseBtn = document.getElementById("activity-collapse-btn")
+  const expandBtn = document.getElementById("activity-expand-btn")
+  if (!workspace || !panel) return
+
+  workspace.classList.toggle("activity-collapsed", collapsed)
+  panel.classList.toggle("collapsed", collapsed)
+  collapseBtn?.setAttribute("aria-expanded", String(!collapsed))
+  expandBtn?.setAttribute("aria-expanded", String(!collapsed))
+
+  flashJarvis(collapsed ? "agent activity collapsed" : "agent activity expanded")
+}
+
+function wireActivityCollapse() {
+  const collapseBtn = document.getElementById("activity-collapse-btn")
+  const expandBtn = document.getElementById("activity-expand-btn")
+  // Guard against double-binding when init() re-runs on refresh.
+  if (collapseBtn && !collapseBtn.dataset.bound) {
+    collapseBtn.dataset.bound = "1"
+    collapseBtn.addEventListener("click", () => setActivityCollapsed(true))
+  }
+  if (expandBtn && !expandBtn.dataset.bound) {
+    expandBtn.dataset.bound = "1"
+    expandBtn.addEventListener("click", () => setActivityCollapsed(false))
+  }
 }
 
 let jarvisTimer = null

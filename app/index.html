@@ -89,13 +89,45 @@
           </div>
         </section>
 
-        <!-- Right: Agent Activity Feed -->
-        <aside class="panel" aria-label="Agent activity feed">
+        <!-- Right: Agent Activity Feed (collapsible) -->
+        <aside class="panel activity-panel" id="activity-panel" aria-label="Agent activity feed">
           <div class="panel-head">
             <span class="panel-title">Agent Activity</span>
-            <span class="panel-badge">LIVE</span>
+            <div class="panel-head-actions">
+              <span class="panel-badge">LIVE</span>
+              <button
+                id="activity-collapse-btn"
+                class="panel-collapse-btn"
+                type="button"
+                aria-label="Collapse agent activity"
+                aria-expanded="true"
+                aria-controls="activity-panel"
+                title="Collapse panel"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            </div>
           </div>
           <ul class="activity-feed" id="activity-feed"></ul>
+
+          <!-- Collapsed rail (shown only when panel is collapsed) -->
+          <button
+            id="activity-expand-btn"
+            class="activity-rail"
+            type="button"
+            aria-label="Expand agent activity"
+            aria-expanded="false"
+            aria-controls="activity-panel"
+            title="Expand panel"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            <span class="activity-rail-label">Agent Activity</span>
+            <span class="activity-rail-dot" aria-hidden="true"></span>
+          </button>
         </aside>
       </main>
 
