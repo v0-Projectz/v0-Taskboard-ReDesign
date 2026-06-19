@@ -318,6 +318,25 @@ function attachDragHandlers(cardNode) {
     draggedCard = null
     document.querySelectorAll(".column.drag-over").forEach((c) => c.classList.remove("drag-over"))
   })
+
+  // Click selects the card (for keyboard shortcuts); ignore menu-button clicks.
+  cardNode.addEventListener("click", (e) => {
+    if (e.target.closest(".card-menu-btn")) return
+    selectCard(cardNode.dataset.cardId)
+  })
+
+  // Three-dot menu trigger.
+  cardNode.querySelector(".card-menu-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation()
+    selectCard(cardNode.dataset.cardId)
+    openCardMenu(cardNode.dataset.cardId, e.currentTarget)
+  })
+}
+
+function selectCard(id) {
+  selectedCardId = id
+  document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected"))
+  document.querySelector(`.card[data-card-id="${id}"]`)?.classList.add("selected")
 }
 
 function attachDropHandlers(column) {
@@ -331,10 +350,32 @@ function attachDropHandlers(column) {
     column.classList.remove("drag-over")
     if (!draggedCard) return
     const target = column.querySelector(".column-cards")
-    if (target) target.appendChild(draggedCard)
-    // NOTE: hook your existing persistence call here, e.g.
-    // PATCH /api/boards/active/cards/:id { columnId: column.dataset.columnId }
+    const cardId = draggedCard.dataset.cardId
+    const newColumn = column.dataset.columnId
+    const fromColumn = draggedCard.dataset.columnId
+    if (target) {
+      target.appendChild(draggedCard)
+      draggedCard.dataset.columnId = newColumn
+      draggedCard.classList.remove("just-moved")
+      void draggedCard.offsetWidth
+      draggedCard.classList.add("just-moved")
+    }
     updateColumnCounts()
+
+    if (cardId && newColumn && newColumn !== fromColumn) {
+      // Persist the move and keep our in-memory board in sync.
+      apiSend(`${API.tasks}/${cardId}/move`, "PATCH", { columnId: newColumn })
+        .then(() => {
+          const c = currentBoard?.cards?.find((x) => x.id === cardId)
+          if (c) c.columnId = newColumn
+          flashJarvis(`moved task to ${newColumn}`)
+        })
+        .catch((err) => {
+          toast("Move failed — reverting", "error")
+          console.log("[v0] Move persist failed:", err.message)
+          init()
+        })
+    }
   })
 }
 
@@ -415,23 +456,308 @@ function flashJarvis(message) {
   }, 2600)
 }
 
+/* ------------------------------ Toasts --------------------------------- */
+function toast(message, kind = "success") {
+  const stack = document.getElementById("toast-stack")
+  if (!stack) return
+  const icons = { success: "✓", error: "✕", info: "i" }
+  const node = el("div", `toast ${kind}`)
+  node.append(el("span", "t-icon", { text: icons[kind] || "•" }), document.createTextNode(message))
+  stack.appendChild(node)
+  setTimeout(() => {
+    node.classList.add("exiting")
+    node.addEventListener("animationend", () => node.remove(), { once: true })
+  }, 2800)
+}
+
+/* --------------------------- Assignee helpers -------------------------- */
+function buildAssigneeOptions(selectEl, current) {
+  if (!selectEl) return
+  selectEl.innerHTML = ""
+  const mk = (value, label) => {
+    const o = document.createElement("option")
+    o.value = value
+    o.textContent = label
+    return o
+  }
+  HUMANS.forEach((h) => selectEl.appendChild(mk(`human:${h}`, `👤 ${h}`)))
+  // Merge known agents with any already on the board.
+  const agents = new Set(AGENT_ROSTER)
+  ;(currentBoard?.cards || []).forEach((c) => {
+    if (c.assignee?.type === "agent" && c.assignee.name) agents.add(c.assignee.name)
+  })
+  ;[...agents].sort().forEach((a) => selectEl.appendChild(mk(`agent:${a}`, `🤖 ${a}`)))
+  if (current) selectEl.value = `${current.type}:${current.name}`
+}
+
+function parseAssignee(value) {
+  const [type, ...rest] = String(value).split(":")
+  return { type: type === "agent" ? "agent" : "human", name: rest.join(":") }
+}
+
+/* ------------------------------ Task modal ----------------------------- */
+let modalMode = "create"
+
+function openTaskModal({ columnId = "backlog", card = null } = {}) {
+  const overlay = document.getElementById("task-modal")
+  if (!overlay) return
+  modalMode = card ? "edit" : "create"
+  document.getElementById("task-modal-title").textContent = card ? "Edit Task" : "New Task"
+  document.getElementById("task-submit").textContent = card ? "Save Changes" : "Create Task"
+  document.getElementById("task-id").value = card ? card.id : ""
+  document.getElementById("task-column").value = card ? card.columnId : columnId
+  document.getElementById("task-title").value = card ? card.title || "" : ""
+  document.getElementById("task-content").value = card ? card.content || "" : ""
+  document.getElementById("task-priority").value = card ? card.priority || "medium" : "medium"
+  buildAssigneeOptions(
+    document.getElementById("task-assignee"),
+    card ? card.assignee : { type: "human", name: HUMANS[0] },
+  )
+  overlay.hidden = false
+  setTimeout(() => document.getElementById("task-title").focus(), 40)
+}
+
+function closeTaskModal() {
+  const overlay = document.getElementById("task-modal")
+  if (overlay) overlay.hidden = true
+}
+
+async function submitTaskForm(e) {
+  e.preventDefault()
+  const id = document.getElementById("task-id").value
+  const payload = {
+    title: document.getElementById("task-title").value.trim(),
+    content: document.getElementById("task-content").value.trim(),
+    columnId: document.getElementById("task-column").value,
+    assignee: parseAssignee(document.getElementById("task-assignee").value),
+    priority: document.getElementById("task-priority").value,
+  }
+  if (!payload.title) {
+    toast("Title is required", "error")
+    return
+  }
+  try {
+    if (modalMode === "edit" && id) {
+      await apiSend(`${API.tasks}/${id}`, "PUT", payload)
+      toast("Task updated", "success")
+    } else {
+      await apiSend(API.tasks, "POST", payload)
+      toast("Task created", "success")
+    }
+    closeTaskModal()
+    await refreshBoardData()
+  } catch (err) {
+    toast(err.message || "Save failed", "error")
+  }
+}
+
+/* --------------------------- Card context menu ------------------------- */
+let menuCardId = null
+
+function openCardMenu(cardId, anchorEl) {
+  const menu = document.getElementById("card-menu")
+  if (!menu) return
+  menuCardId = cardId
+  buildAssigneeOptions(document.getElementById("menu-assign-select"), null)
+  const card = currentBoard?.cards?.find((c) => c.id === cardId)
+  const sel = document.getElementById("menu-assign-select")
+  if (card?.assignee) sel.value = `${card.assignee.type}:${card.assignee.name}`
+
+  menu.hidden = false
+  // Position near the trigger, clamped to the viewport.
+  const rect = anchorEl.getBoundingClientRect()
+  const mw = menu.offsetWidth
+  const mh = menu.offsetHeight
+  let left = rect.right - mw
+  let top = rect.bottom + 6
+  if (left < 8) left = 8
+  if (top + mh > window.innerHeight - 8) top = rect.top - mh - 6
+  menu.style.left = `${left}px`
+  menu.style.top = `${top}px`
+}
+
+function closeCardMenu() {
+  const menu = document.getElementById("card-menu")
+  if (menu) menu.hidden = true
+  menuCardId = null
+}
+
+async function duplicateTask(cardId) {
+  const card = currentBoard?.cards?.find((c) => c.id === cardId)
+  if (!card) return
+  try {
+    await apiSend(API.tasks, "POST", {
+      title: `${card.title} (Copy)`,
+      content: card.content,
+      columnId: card.columnId,
+      assignee: card.assignee,
+      priority: card.priority,
+      tags: card.tags,
+    })
+    toast("Task duplicated", "success")
+    await refreshBoardData()
+  } catch (err) {
+    toast(err.message || "Duplicate failed", "error")
+  }
+}
+
+async function deleteTask(cardId) {
+  const card = currentBoard?.cards?.find((c) => c.id === cardId)
+  if (!card) return
+  if (!window.confirm(`Are you sure you want to delete "${card.title}"?`)) return
+  try {
+    await apiSend(`${API.tasks}/${cardId}`, "DELETE")
+    toast("Task deleted", "info")
+    if (selectedCardId === cardId) selectedCardId = null
+    await refreshBoardData()
+  } catch (err) {
+    toast(err.message || "Delete failed", "error")
+  }
+}
+
+async function assignTask(cardId, value) {
+  try {
+    await apiSend(`${API.tasks}/${cardId}`, "PUT", { assignee: parseAssignee(value) })
+    toast("Agent assigned", "success")
+    await refreshBoardData()
+  } catch (err) {
+    toast(err.message || "Assign failed", "error")
+  }
+}
+
+function wireMenuAndModal() {
+  // These bind to static elements, so only wire once across init() re-runs.
+  if (document.body.dataset.menuBound) return
+  document.body.dataset.menuBound = "1"
+
+  // Modal controls.
+  document.getElementById("task-form")?.addEventListener("submit", submitTaskForm)
+  document.getElementById("task-modal-close")?.addEventListener("click", closeTaskModal)
+  document.getElementById("task-cancel")?.addEventListener("click", closeTaskModal)
+  document.getElementById("task-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "task-modal") closeTaskModal()
+  })
+
+  // Context menu actions.
+  const menu = document.getElementById("card-menu")
+  menu?.querySelectorAll(".menu-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const act = item.dataset.act
+      const id = menuCardId
+      closeCardMenu()
+      if (!id) return
+      if (act === "edit") openTaskModal({ card: currentBoard.cards.find((c) => c.id === id) })
+      else if (act === "duplicate") duplicateTask(id)
+      else if (act === "delete") deleteTask(id)
+    })
+  })
+  document.getElementById("menu-assign-select")?.addEventListener("change", (e) => {
+    const id = menuCardId
+    closeCardMenu()
+    if (id) assignTask(id, e.target.value)
+  })
+
+  // Dismiss menu on outside click / scroll / escape.
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#card-menu") && !e.target.closest(".card-menu-btn")) closeCardMenu()
+  })
+  window.addEventListener("scroll", closeCardMenu, true)
+}
+
+/* --------------------------- Keyboard shortcuts ------------------------ */
+function wireKeyboardShortcuts() {
+  if (document.body.dataset.shortcutsBound) return
+  document.body.dataset.shortcutsBound = "1"
+  document.addEventListener("keydown", (e) => {
+    const mod = e.metaKey || e.ctrlKey
+    const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "")
+    const modalOpen = !document.getElementById("task-modal")?.hidden
+
+    if (e.key === "Escape") {
+      closeCardMenu()
+      if (modalOpen) closeTaskModal()
+      return
+    }
+    if (mod && e.key.toLowerCase() === "k") {
+      e.preventDefault()
+      openTaskModal({ columnId: "backlog" })
+      flashJarvis("quick add · ⌘K")
+      return
+    }
+    if (modalOpen || inField) return
+    if (mod && e.key.toLowerCase() === "e" && selectedCardId) {
+      e.preventDefault()
+      openTaskModal({ card: currentBoard.cards.find((c) => c.id === selectedCardId) })
+    } else if ((e.key === "Delete" || e.key === "Backspace") && selectedCardId) {
+      e.preventDefault()
+      deleteTask(selectedCardId)
+    }
+  })
+}
+
+/* Re-fetch + re-render the board after a mutation, preserving selection. */
+async function refreshBoardData() {
+  const board = await fetchBoard()
+  currentBoard = board
+  renderHeader(board)
+  renderNextSteps(board.nextSteps || [])
+  renderBoard(board)
+  renderActivity(board.activity || [])
+  if (selectedCardId) selectCard(selectedCardId)
+}
+
 /* ------------------------------- Init ---------------------------------- */
+function renderBoardSkeleton() {
+  const boardEl = document.getElementById("board")
+  if (!boardEl) return
+  const cols = [3, 2, 2, 2]
+  boardEl.innerHTML = `<div class="board-skeleton">${cols
+    .map(
+      (n) =>
+        `<div class="skeleton-col"><div class="skeleton-block head"></div>${'<div class="skeleton-block card"></div>'.repeat(n)}</div>`,
+    )
+    .join("")}</div>`
+}
+
+function renderBoardError(message) {
+  const boardEl = document.getElementById("board")
+  if (!boardEl) return
+  boardEl.innerHTML = ""
+  const wrap = el("div", "board-error")
+  const icon = el("div", "err-icon")
+  icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>`
+  const title = el("div", "err-title", { text: "Backend unreachable" })
+  const msg = el("div", "err-msg")
+  msg.innerHTML = message
+  const retry = el("button", "ctrl-btn primary", { type: "button", text: "Retry Connection" })
+  retry.addEventListener("click", () => init())
+  wrap.append(icon, title, msg, retry)
+  boardEl.appendChild(wrap)
+}
+
 async function init() {
+  flashJarvis("connecting to backend…")
+  renderBoardSkeleton()
   try {
     const [board, services] = await Promise.all([fetchBoard(), fetchServices()])
+    currentBoard = board
     renderHeader(board)
     renderNextSteps(board.nextSteps || [])
     renderBoard(board)
     renderActivity(board.activity || [])
     renderServices(services)
     wireControls(board)
+    wireMenuAndModal()
+    wireKeyboardShortcuts()
+    if (selectedCardId) selectCard(selectedCardId)
+    flashJarvis("connected · agent CLI bridge")
     console.log("[v0] TaskBoardAI rendered:", board.projectName)
   } catch (err) {
     console.log("[v0] Failed to initialize board:", err.message)
-    const boardEl = document.getElementById("board")
-    if (boardEl) {
-      boardEl.innerHTML = `<div class="board-loading">Unable to reach the board API. Ensure the Express backend is running.</div>`
-    }
+    renderBoardError(
+      'Could not reach the board API after 3 attempts. Ensure the Express backend is running on <code>http://localhost:8080</code>.',
+    )
+    flashJarvis("backend unreachable")
   }
 }
 
