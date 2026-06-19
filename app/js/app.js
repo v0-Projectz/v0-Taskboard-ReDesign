@@ -15,6 +15,25 @@
 const API = {
   activeBoard: "/api/boards/active",
   serviceStatus: "/api/services/status",
+  tasks: "/api/tasks",
+}
+
+// Current board cached in memory so menus/shortcuts can look cards up.
+let currentBoard = null
+let selectedCardId = null
+
+// Known agents available for assignment. Derived list is merged with any
+// agents already present on the board at render time.
+const AGENT_ROSTER = ["Hermes", "Cartographer", "Postiz", "Sentinel", "LiteLLM", "ComfyUI"]
+const HUMANS = ["Tony"]
+
+// agentStatus → label/class used for the small card status badge.
+const STATUS_META = {
+  active: { label: "Active", cls: "active" },
+  awaiting: { label: "Awaiting Human", cls: "awaiting" },
+  error: { label: "Error", cls: "error" },
+  queued: { label: "Queued", cls: "" },
+  done: { label: "Done", cls: "done" },
 }
 
 /* ----------------------------- Utilities ------------------------------- */
@@ -36,10 +55,50 @@ function escapeHtml(str = "") {
 }
 
 /* --------------------------- Data fetching ----------------------------- */
+// fetch with a hard timeout so a hung backend doesn't leave us spinning.
+async function fetchWithTimeout(url, opts = {}, ms = 5000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ms)
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function fetchBoard() {
-  const res = await fetch(API.activeBoard, { headers: { Accept: "application/json" } })
-  if (!res.ok) throw new Error(`Board fetch failed: ${res.status}`)
-  return res.json()
+  // Up to 3 attempts with a 5s timeout each before giving up.
+  let lastErr
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetchWithTimeout(API.activeBoard, { headers: { Accept: "application/json" } })
+      if (!res.ok) throw new Error(`Board fetch failed: ${res.status}`)
+      return await res.json()
+    } catch (err) {
+      lastErr = err
+      console.log(`[v0] Board fetch attempt ${attempt} failed:`, err.message)
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 600 * attempt))
+    }
+  }
+  throw lastErr
+}
+
+/* JSON helper for task mutations; throws with the server message on failure. */
+async function apiSend(url, method, body) {
+  const res = await fetchWithTimeout(url, {
+    method,
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    let msg = `Request failed (${res.status})`
+    try {
+      const data = await res.json()
+      if (data && data.error) msg = data.error
+    } catch {}
+    throw new Error(msg)
+  }
+  return res.status === 204 ? null : res.json()
 }
 
 async function fetchServices() {
@@ -92,11 +151,49 @@ function subtaskProgress(subtasks = []) {
   return { total, done, pct }
 }
 
-function renderCard(card) {
-  const node = el("article", "card", { draggable: "true", "data-card-id": card.id, "data-column-id": card.columnId })
+function initials(name = "?") {
+  const parts = String(name).trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return String(name).slice(0, 2).toUpperCase()
+}
 
-  node.appendChild(el("h3", "card-title", { text: card.title || "Untitled" }))
+function renderCard(card) {
+  const node = el("article", "card", {
+    draggable: "true",
+    "data-card-id": card.id,
+    "data-column-id": card.columnId,
+    "data-priority": card.priority || "medium",
+  })
+
+  // Header row: title + three-dot menu trigger.
+  const head = el("div", "card-head")
+  head.appendChild(el("h3", "card-title", { text: card.title || "Untitled" }))
+  const menuBtn = el("button", "card-menu-btn", {
+    type: "button",
+    "aria-label": `Open menu for ${card.title || "task"}`,
+    title: "Task options",
+    "data-menu-for": card.id,
+  })
+  menuBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>`
+  head.appendChild(menuBtn)
+  node.appendChild(head)
+
   if (card.content) node.appendChild(el("p", "card-content", { text: card.content }))
+
+  // Assignee chip + agent status badge.
+  const meta = el("div", "card-meta")
+  const a = card.assignee || { type: "human", name: "Unassigned" }
+  const chip = el("span", `assignee-chip ${a.type === "agent" ? "agent" : "human"}`)
+  chip.append(
+    el("span", "a-avatar", { text: initials(a.name) }),
+    el("span", "a-name", { text: a.name || "Unassigned" }),
+  )
+  meta.appendChild(chip)
+  const sMeta = STATUS_META[card.agentStatus] || STATUS_META.queued
+  const badge = el("span", `status-badge ${sMeta.cls}`.trim(), { title: `Status: ${sMeta.label}` })
+  badge.append(el("span", "s-dot"), document.createTextNode(sMeta.label))
+  meta.appendChild(badge)
+  node.appendChild(meta)
 
   if (Array.isArray(card.tags) && card.tags.length) {
     const tagWrap = el("div", "card-tags")
@@ -149,6 +246,12 @@ function renderBoard(board) {
       el("span", "column-count", { text: String(colCards.length) }),
     )
     column.appendChild(head)
+
+    // Quick "+ New Task" button seeded with this column.
+    const addBtn = el("button", "add-task-btn", { type: "button", "data-add-column": col.id })
+    addBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg> New Task`
+    addBtn.addEventListener("click", () => openTaskModal({ columnId: col.id }))
+    column.appendChild(addBtn)
 
     const cardWrap = el("div", "column-cards")
     colCards.forEach((c, i) => {

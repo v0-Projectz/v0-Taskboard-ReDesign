@@ -9,7 +9,8 @@
  * persists to `.cursor/boards/msc-website-v9.json`.
  */
 import express from "express"
-import { readFile } from "node:fs/promises"
+import { readFile, writeFile } from "node:fs/promises"
+import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
 
@@ -18,6 +19,9 @@ const app = express()
 const PORT = process.env.PORT || 8080
 
 const SAMPLE_BOARD = join(__dirname, "app", "data", "msc-website-v9.json")
+// Mutations are persisted here so task edits survive server restarts. The
+// sample board above is only used to seed this file the first time.
+const BOARD_STATE = join(__dirname, "app", "data", "board-state.json")
 
 app.use(express.json())
 
@@ -27,7 +31,9 @@ let cardSeq = 100
 let actSeq = 100
 
 async function loadBoard() {
-  const raw = await readFile(SAMPLE_BOARD, "utf8")
+  // Prefer the persisted state file; fall back to the seed sample on first run.
+  const source = existsSync(BOARD_STATE) ? BOARD_STATE : SAMPLE_BOARD
+  const raw = await readFile(source, "utf8")
   board = JSON.parse(raw)
   // Seed sequence counters above any existing numeric ids.
   for (const c of board.cards || []) {
@@ -38,6 +44,23 @@ async function loadBoard() {
     const n = Number.parseInt(String(a.id).replace(/\D/g, ""), 10)
     if (!Number.isNaN(n) && a.id && n >= actSeq) actSeq = n + 1
   }
+  if (source === SAMPLE_BOARD) await saveBoard()
+}
+
+/* Debounced write of the in-memory board to the JSON state file. */
+let saveTimer = null
+function saveBoard() {
+  return new Promise((resolve) => {
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(async () => {
+      try {
+        await writeFile(BOARD_STATE, JSON.stringify(board, null, 2), "utf8")
+      } catch (err) {
+        console.log("[v0] Failed to persist board:", err.message)
+      }
+      resolve()
+    }, 120)
+  })
 }
 
 function nextCardId() {
@@ -110,6 +133,7 @@ app.post("/api/tasks", (req, res) => {
     `created task "${card.title}"`,
     { live: true },
   )
+  saveBoard()
   res.status(201).json(card)
 })
 
@@ -124,6 +148,7 @@ app.put("/api/tasks/:id", (req, res) => {
   if (priority !== undefined) card.priority = priority
   if (agentStatus !== undefined) card.agentStatus = agentStatus
   pushActivity(card.assignee?.name || "System", `updated task "${card.title}"`)
+  saveBoard()
   res.json(card)
 })
 
@@ -132,6 +157,7 @@ app.patch("/api/tasks/:id/move", (req, res) => {
   if (!card) return res.status(404).json({ error: "Task not found" })
   const { columnId } = req.body || {}
   if (columnId) card.columnId = columnId
+  saveBoard()
   res.json(card)
 })
 
@@ -140,6 +166,7 @@ app.delete("/api/tasks/:id", (req, res) => {
   if (idx === -1) return res.status(404).json({ error: "Task not found" })
   const [removed] = board.cards.splice(idx, 1)
   pushActivity("System", `deleted task "${removed.title}"`)
+  saveBoard()
   res.json({ ok: true, id: removed.id })
 })
 
@@ -156,6 +183,7 @@ app.post("/api/feed/:id/approve", (req, res) => {
   item.live = false
   const who = (req.body && req.body.by) || "Tony"
   item.comments.push({ author: who, text: `Approved by ${who}`, kind: "approve" })
+  saveBoard()
   res.json(item)
 })
 
@@ -167,6 +195,7 @@ app.post("/api/feed/:id/reject", (req, res) => {
   item.live = false
   const reason = (req.body && req.body.reason) || "No reason provided"
   item.comments.push({ author: "Tony", text: `Rejected: ${reason}`, kind: "reject" })
+  saveBoard()
   res.json(item)
 })
 
@@ -180,6 +209,7 @@ app.post("/api/feed/:id/rerun", (req, res) => {
     initials: item.initials,
     details: item.details,
   })
+  saveBoard()
   res.json({ ok: true })
 })
 
@@ -189,6 +219,7 @@ app.post("/api/feed/:id/comment", (req, res) => {
   const text = (req.body && req.body.text) || ""
   if (!text.trim()) return res.status(400).json({ error: "Comment text required" })
   item.comments.push({ author: "Tony", text: text.trim(), kind: "comment" })
+  saveBoard()
   res.json(item)
 })
 
