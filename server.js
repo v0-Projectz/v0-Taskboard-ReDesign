@@ -17,7 +17,7 @@ import { dirname, join } from "node:path"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT || 8080
 
 const SAMPLE_BOARD = join(__dirname, "app", "data", "msc-website-v9.json")
 
