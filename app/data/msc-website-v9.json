@@ -18,6 +18,9 @@
       "title": "Brand system tokens",
       "content": "Define Studio Gold palette and dark-glass surface layering across all panels.",
       "columnId": "done",
+      "assignee": { "type": "human", "name": "Tony" },
+      "priority": "medium",
+      "agentStatus": "done",
       "subtasks": [
         { "title": "Color variables", "done": true },
         { "title": "Glass borders", "done": true }
@@ -31,6 +34,9 @@
       "title": "Production header bar",
       "content": "Build the wide-tracked title, board switcher and high-gloss control cluster.",
       "columnId": "done",
+      "assignee": { "type": "human", "name": "Tony" },
+      "priority": "medium",
+      "agentStatus": "done",
       "subtasks": [
         { "title": "Board switcher", "done": true },
         { "title": "Control buttons", "done": true }
@@ -42,8 +48,11 @@
     {
       "id": "card-003",
       "title": "Kanban glass bays",
-      "content": "Style columns as vertical frosted bays with individual translucent hues.",
+      "content": "Style columns as vertical frosted bays with individual translucent hues. Owned by @Cartographer for layout indexing.",
       "columnId": "in-progress",
+      "assignee": { "type": "agent", "name": "Cartographer" },
+      "priority": "high",
+      "agentStatus": "active",
       "subtasks": [
         { "title": "Column hues", "done": true },
         { "title": "Drag feedback", "done": false },
@@ -56,8 +65,11 @@
     {
       "id": "card-004",
       "title": "Agent activity feed",
-      "content": "Hydrate the right bento panel with real-time agent executions and avatars.",
+      "content": "Hydrate the right bento panel with real-time agent executions and avatars via @Hermes.",
       "columnId": "in-progress",
+      "assignee": { "type": "agent", "name": "Hermes" },
+      "priority": "high",
+      "agentStatus": "awaiting",
       "subtasks": [
         { "title": "Feed list", "done": true },
         { "title": "Agent avatars", "done": false }
@@ -71,6 +83,9 @@
       "title": "J.A.R.V.I.S. command bar",
       "content": "Footer console with voice waveform and live service health capsules.",
       "columnId": "ready",
+      "assignee": { "type": "human", "name": "Tony" },
+      "priority": "medium",
+      "agentStatus": "queued",
       "subtasks": [
         { "title": "Waveform indicator", "done": false },
         { "title": "Service monitors", "done": false }
@@ -82,8 +97,11 @@
     {
       "id": "card-006",
       "title": "Campaign publisher",
-      "content": "Connect Create Campaign action to the Postiz scheduling endpoint.",
+      "content": "Connect Create Campaign action to the Postiz scheduling endpoint via @Postiz.",
       "columnId": "ready",
+      "assignee": { "type": "agent", "name": "Postiz" },
+      "priority": "medium",
+      "agentStatus": "queued",
       "subtasks": [
         { "title": "Postiz auth", "done": false }
       ],
@@ -94,8 +112,11 @@
     {
       "id": "card-007",
       "title": "ComfyUI render hooks",
-      "content": "Generate Image shortcut should dispatch jobs to the ComfyUI graph.",
+      "content": "Generate Image shortcut should dispatch jobs to the ComfyUI graph via @ComfyUI.",
       "columnId": "backlog",
+      "assignee": { "type": "agent", "name": "ComfyUI" },
+      "priority": "high",
+      "agentStatus": "error",
       "subtasks": [
         { "title": "Job schema", "done": false },
         { "title": "Webhook receiver", "done": false }
@@ -109,6 +130,9 @@
       "title": "Build verification suite",
       "content": "Verify Build action runs the full lint + e2e gate before deploy.",
       "columnId": "backlog",
+      "assignee": { "type": "agent", "name": "Sentinel" },
+      "priority": "low",
+      "agentStatus": "queued",
       "subtasks": [],
       "tags": ["ci", "quality"],
       "dependencies": ["card-003"],
@@ -119,6 +143,9 @@
       "title": "Custom scrollbars",
       "content": "Thin glowing scrollbars across columns and feed panels.",
       "columnId": "backlog",
+      "assignee": { "type": "human", "name": "Tony" },
+      "priority": "low",
+      "agentStatus": "queued",
       "subtasks": [],
       "tags": ["ui", "polish"],
       "dependencies": ["card-003"],
@@ -126,10 +153,85 @@
     }
   ],
   "activity": [
-    { "agent": "Hermes", "initials": "HM", "action": "queued render job HRM-2240", "time": "just now", "live": true },
-    { "agent": "Cartographer", "initials": "CG", "action": "indexed 12 media assets", "time": "2m ago", "live": false },
-    { "agent": "Postiz", "initials": "PZ", "action": "scheduled campaign draft", "time": "6m ago", "live": false },
-    { "agent": "Sentinel", "initials": "SN", "action": "passed build gate on staging", "time": "11m ago", "live": false },
-    { "agent": "LiteLLM", "initials": "LL", "action": "completed 3 completions", "time": "18m ago", "live": false }
+    {
+      "id": "act-001",
+      "agent": "Hermes",
+      "initials": "HM",
+      "action": "queued render job HRM-2240",
+      "time": "just now",
+      "live": true,
+      "requiresApproval": true,
+      "status": "pending",
+      "details": [
+        "[queue] accepted job HRM-2240 from ComfyUI graph",
+        "[queue] priority=high, retries=0",
+        "[queue] awaiting human approval to dispatch to render farm"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-002",
+      "agent": "Cartographer",
+      "initials": "CG",
+      "action": "indexed 12 media assets",
+      "time": "2m ago",
+      "live": false,
+      "requiresApproval": false,
+      "status": "done",
+      "details": [
+        "[scan] traversed /media/library (12 new assets)",
+        "[index] embedded 12 thumbnails",
+        "[index] committed to vector store in 1.8s"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-003",
+      "agent": "Postiz",
+      "initials": "PZ",
+      "action": "scheduled campaign draft",
+      "time": "6m ago",
+      "live": false,
+      "requiresApproval": true,
+      "status": "pending",
+      "details": [
+        "[draft] generated 3 social variants",
+        "[schedule] proposed window: Fri 09:00 PT",
+        "[schedule] awaiting approval before publish"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-004",
+      "agent": "Sentinel",
+      "initials": "SN",
+      "action": "passed build gate on staging",
+      "time": "11m ago",
+      "live": false,
+      "requiresApproval": false,
+      "status": "done",
+      "details": [
+        "[lint] 0 errors, 0 warnings",
+        "[e2e] 48 passed, 0 failed",
+        "[gate] staging deploy approved"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-005",
+      "agent": "LiteLLM",
+      "initials": "LL",
+      "action": "completed 3 completions",
+      "time": "18m ago",
+      "live": false,
+      "requiresApproval": false,
+      "status": "done",
+      "details": [
+        "[llm] model=gpt-4o-mini, tokens=2,418",
+        "[llm] 3 completions, avg latency 740ms",
+        "[llm] cache hit ratio 33%"
+      ],
+      "comments": []
+    }
   ]
 }
