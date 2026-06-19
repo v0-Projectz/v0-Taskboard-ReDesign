@@ -38,13 +38,20 @@
         </div>
 
         <div class="controls">
-          <button id="copy-board-info-btn" class="ctrl-btn" type="button">
+          <button id="needs-attention-btn" class="ctrl-btn attention-btn" type="button" aria-label="Needs attention" title="Items awaiting your review">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4" /><path d="M12 17h.01" />
+            </svg>
+            Attention
+            <span class="attention-badge" id="attention-badge" hidden>0</span>
+          </button>
+          <button id="copy-board-info-btn" class="ctrl-btn" type="button" title="Copy board snapshot as JSON">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
             Copy
           </button>
-          <button id="refresh-board-btn" class="ctrl-btn" type="button">
+          <button id="refresh-board-btn" class="ctrl-btn" type="button" title="Reload board from backend">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /><path d="M3 21v-5h5" />
             </svg>
@@ -231,6 +238,48 @@
       </div>
       <div class="menu-sep" role="separator"></div>
       <button class="menu-item danger" data-act="delete" role="menuitem" type="button">Delete Task</button>
+    </div>
+
+    <!-- ===================== Needs Attention Inbox ==================== -->
+    <div class="modal-overlay" id="attention-modal" hidden>
+      <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="attention-title">
+        <div class="modal-head">
+          <h2 class="modal-title" id="attention-title">Needs Attention</h2>
+          <button class="modal-close" id="attention-close" type="button" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="attention-body" id="attention-body">
+          <!-- populated by app.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== Verify Build Terminal ==================== -->
+    <div class="modal-overlay" id="build-modal" hidden>
+      <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="build-title">
+        <div class="modal-head">
+          <h2 class="modal-title" id="build-title">Verify Build</h2>
+          <button class="modal-close" id="build-close" type="button" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="terminal" id="build-terminal" aria-live="polite">
+          <div class="terminal-bar" aria-hidden="true">
+            <span class="term-dot red"></span><span class="term-dot amber"></span><span class="term-dot green"></span>
+            <span class="terminal-title">jarvis@studio — verify-build</span>
+          </div>
+          <div class="terminal-output" id="terminal-output"></div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="ctrl-btn" id="build-cancel">Close</button>
+          <button type="button" class="ctrl-btn primary" id="build-rerun">Run Again</button>
+        </div>
+      </div>
     </div>
 
     <!-- ===================== Toast notifications ===================== -->

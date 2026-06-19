@@ -16,6 +16,8 @@ const API = {
   activeBoard: "/api/boards/active",
   serviceStatus: "/api/services/status",
   tasks: "/api/tasks",
+  feed: "/api/feed",
+  buildVerify: "/api/build/verify",
 }
 
 // Current board cached in memory so menus/shortcuts can look cards up.
@@ -266,27 +268,343 @@ function renderBoard(board) {
   })
 }
 
+// Tracks which feed items are expanded so re-renders preserve open state.
+const expandedFeed = new Set()
+
+// status → label/class for the small feed status pill.
+const FEED_STATUS = {
+  pending: { label: "Needs Review", cls: "pending" },
+  approved: { label: "Approved", cls: "approved" },
+  rejected: { label: "Rejected", cls: "rejected" },
+  done: { label: "Done", cls: "done" },
+}
+
+// Render an action string with @Mentions turned into highlighted spans.
+function withMentions(text) {
+  const frag = document.createDocumentFragment()
+  const parts = String(text || "").split(/(@[A-Za-z][\w-]*)/g)
+  parts.forEach((p) => {
+    if (/^@[A-Za-z][\w-]*$/.test(p)) frag.appendChild(el("span", "mention", { text: p }))
+    else frag.appendChild(document.createTextNode(p))
+  })
+  return frag
+}
+
 function renderActivity(items = []) {
   const feed = document.getElementById("activity-feed")
   if (!feed) return
   feed.innerHTML = ""
+  if (!items.length) {
+    feed.appendChild(el("li", "activity-empty", { text: "No agent activity yet." }))
+    return
+  }
   items.forEach((item, i) => {
-    const li = el("li", "activity-item")
-    li.style.animationDelay = `${i * 0.06}s`
+    const status = item.status || (item.requiresApproval ? "pending" : "done")
+    const meta = FEED_STATUS[status] || FEED_STATUS.done
+    const li = el("li", `activity-item status-${status}${item.live ? " is-live" : ""}`, {
+      "data-feed-id": item.id || "",
+    })
+    li.style.animationDelay = `${i * 0.05}s`
 
-    const avatar = el("span", "agent-avatar", { text: item.initials || (item.agent || "?").slice(0, 2).toUpperCase() })
+    const avatar = el("span", "agent-avatar", {
+      text: item.initials || (item.agent || "?").slice(0, 2).toUpperCase(),
+    })
 
     const body = el("div", "activity-body")
+
+    // Top row: agent name + live pill + status pill.
     const agentRow = el("div", "activity-agent")
     agentRow.appendChild(document.createTextNode(item.agent || "Agent"))
     if (item.live) agentRow.appendChild(el("span", "live-pill", { text: "live" }))
+    agentRow.appendChild(el("span", `status-pill ${meta.cls}`, { text: meta.label }))
     body.appendChild(agentRow)
-    body.appendChild(el("div", "activity-action", { text: item.action || "" }))
+
+    const action = el("div", "activity-action")
+    action.appendChild(withMentions(item.action || ""))
+    body.appendChild(action)
     body.appendChild(el("div", "activity-time", { text: item.time || "" }))
+
+    // Expandable detail logs.
+    const hasDetails = Array.isArray(item.details) && item.details.length
+    const hasComments = Array.isArray(item.comments) && item.comments.length
+    if (hasDetails || hasComments) {
+      const isOpen = expandedFeed.has(item.id)
+      const toggle = el("button", "feed-toggle", { type: "button" })
+      toggle.textContent = isOpen ? "Hide details" : "View details"
+      toggle.setAttribute("aria-expanded", String(isOpen))
+      const drawer = el("div", `feed-drawer${isOpen ? " open" : ""}`)
+
+      if (hasDetails) {
+        const log = el("pre", "feed-log")
+        log.textContent = item.details.join("\n")
+        drawer.appendChild(log)
+      }
+      if (hasComments) {
+        const thread = el("div", "feed-comments")
+        item.comments.forEach((c) => {
+          const row = el("div", `feed-comment kind-${c.kind || "comment"}`)
+          row.append(
+            el("span", "fc-author", { text: c.author || "User" }),
+            el("span", "fc-text", { text: c.text || "" }),
+          )
+          thread.appendChild(row)
+        })
+        drawer.appendChild(thread)
+      }
+
+      toggle.addEventListener("click", () => {
+        const open = drawer.classList.toggle("open")
+        toggle.textContent = open ? "Hide details" : "View details"
+        toggle.setAttribute("aria-expanded", String(open))
+        if (open) expandedFeed.add(item.id)
+        else expandedFeed.delete(item.id)
+      })
+      body.append(toggle, drawer)
+    }
+
+    // Action buttons.
+    const actions = el("div", "feed-actions")
+    if (status === "pending" && item.requiresApproval) {
+      const approve = el("button", "feed-btn approve", { type: "button", text: "Approve" })
+      approve.addEventListener("click", () => feedAction(item.id, "approve"))
+      const reject = el("button", "feed-btn reject", { type: "button", text: "Reject" })
+      reject.addEventListener("click", () => feedReject(item.id))
+      actions.append(approve, reject)
+    }
+    const rerun = el("button", "feed-btn ghost", { type: "button", text: "Re-run" })
+    rerun.addEventListener("click", () => feedAction(item.id, "rerun"))
+    const comment = el("button", "feed-btn ghost", { type: "button", text: "Comment" })
+    comment.addEventListener("click", () => feedComment(item.id))
+    actions.append(rerun, comment)
+    body.appendChild(actions)
 
     li.append(avatar, body)
     feed.appendChild(li)
   })
+}
+
+/* ----------------------- Feed action handlers -------------------------- */
+async function refreshFeedOnly() {
+  const board = await fetchBoard()
+  currentBoard = board
+  renderActivity(board.activity || [])
+  updateAttentionBadge()
+}
+
+async function feedAction(id, kind) {
+  if (!id) return
+  try {
+    await apiSend(`${API.feed}/${id}/${kind}`, "POST", {})
+    toast(kind === "approve" ? "Action approved" : "Re-run dispatched", "success")
+    flashJarvis(kind === "approve" ? "approved agent action" : "re-running agent action")
+    await refreshFeedOnly()
+  } catch (err) {
+    toast(err.message || "Action failed", "error")
+  }
+}
+
+async function feedReject(id) {
+  if (!id) return
+  const reason = window.prompt("Reason for rejection (optional):", "")
+  if (reason === null) return // user cancelled
+  try {
+    await apiSend(`${API.feed}/${id}/reject`, "POST", { reason: reason || "No reason provided" })
+    toast("Action rejected", "info")
+    flashJarvis("rejected agent action")
+    await refreshFeedOnly()
+  } catch (err) {
+    toast(err.message || "Reject failed", "error")
+  }
+}
+
+async function feedComment(id) {
+  if (!id) return
+  const text = window.prompt("Add a comment:", "")
+  if (!text || !text.trim()) return
+  try {
+    await apiSend(`${API.feed}/${id}/comment`, "POST", { text: text.trim() })
+    expandedFeed.add(id) // open the drawer so the new comment is visible
+    toast("Comment added", "success")
+    await refreshFeedOnly()
+  } catch (err) {
+    toast(err.message || "Comment failed", "error")
+  }
+}
+
+/* =================== Needs Attention inbox ============================= */
+// An item needs attention if an agent is awaiting human approval, or a card
+// or feed entry is in an error state.
+function collectAttention() {
+  const board = currentBoard || {}
+  const feedItems = (board.activity || []).filter(
+    (a) => (a.requiresApproval && a.status === "pending") || a.status === "error",
+  )
+  const errorCards = (board.cards || []).filter((c) => c.agentStatus === "error")
+  return { feedItems, errorCards, total: feedItems.length + errorCards.length }
+}
+
+function updateAttentionBadge() {
+  const badge = document.getElementById("attention-badge")
+  const btn = document.getElementById("needs-attention-btn")
+  if (!badge || !btn) return
+  const { total } = collectAttention()
+  badge.textContent = String(total)
+  badge.hidden = total === 0
+  btn.classList.toggle("has-attention", total > 0)
+}
+
+function openAttentionModal() {
+  const modal = document.getElementById("attention-modal")
+  const body = document.getElementById("attention-body")
+  if (!modal || !body) return
+  const { feedItems, errorCards, total } = collectAttention()
+  body.innerHTML = ""
+
+  if (total === 0) {
+    const empty = el("div", "attention-empty")
+    empty.append(
+      el("div", "attention-empty-icon", { text: "✓" }),
+      el("div", "attention-empty-title", { text: "All clear" }),
+      el("div", "attention-empty-sub", { text: "No agents are waiting and no errors need review." }),
+    )
+    body.appendChild(empty)
+    modal.hidden = false
+    return
+  }
+
+  if (errorCards.length) {
+    body.appendChild(el("div", "attention-group-label", { text: `Errors (${errorCards.length})` }))
+    errorCards.forEach((c) => {
+      const row = el("div", "attention-row error")
+      const info = el("div", "attention-info")
+      info.append(
+        el("div", "attention-row-title", { text: c.title }),
+        el("div", "attention-row-meta", { text: `${c.assignee?.name || "Unassigned"} · in ${columnName(c.columnId)}` }),
+      )
+      const view = el("button", "feed-btn ghost", { type: "button", text: "Open task" })
+      view.addEventListener("click", () => {
+        closeAttentionModal()
+        openTaskModal({ cardId: c.id })
+      })
+      row.append(info, view)
+      body.appendChild(row)
+    })
+  }
+
+  if (feedItems.length) {
+    body.appendChild(el("div", "attention-group-label", { text: `Awaiting approval (${feedItems.length})` }))
+    feedItems.forEach((item) => {
+      const row = el("div", "attention-row pending")
+      const info = el("div", "attention-info")
+      const titleEl = el("div", "attention-row-title")
+      titleEl.append(document.createTextNode(`${item.agent} · `), withMentions(item.action || ""))
+      info.append(titleEl, el("div", "attention-row-meta", { text: item.time || "" }))
+      const actions = el("div", "attention-actions")
+      const approve = el("button", "feed-btn approve", { type: "button", text: "Approve" })
+      approve.addEventListener("click", async () => {
+        await feedAction(item.id, "approve")
+        refreshAttentionModal()
+      })
+      const reject = el("button", "feed-btn reject", { type: "button", text: "Reject" })
+      reject.addEventListener("click", async () => {
+        await feedReject(item.id)
+        refreshAttentionModal()
+      })
+      actions.append(approve, reject)
+      row.append(info, actions)
+      body.appendChild(row)
+    })
+  }
+
+  modal.hidden = false
+}
+
+// Re-open against fresh data after an inline action.
+function refreshAttentionModal() {
+  if (!document.getElementById("attention-modal")?.hidden) openAttentionModal()
+  updateAttentionBadge()
+}
+
+function closeAttentionModal() {
+  const modal = document.getElementById("attention-modal")
+  if (modal) modal.hidden = true
+}
+
+function columnName(columnId) {
+  const col = (currentBoard?.columns || []).find((c) => c.id === columnId)
+  return col?.name || columnId || "board"
+}
+
+/* =================== Verify Build terminal ============================= */
+let buildRunning = false
+
+function openBuildModal() {
+  const modal = document.getElementById("build-modal")
+  if (!modal) return
+  modal.hidden = false
+  runBuildVerify()
+}
+
+function closeBuildModal() {
+  const modal = document.getElementById("build-modal")
+  if (modal) modal.hidden = true
+}
+
+function termLine(text, cls = "") {
+  const out = document.getElementById("terminal-output")
+  if (!out) return null
+  const line = el("div", `term-line ${cls}`.trim(), { text })
+  out.appendChild(line)
+  out.scrollTop = out.scrollHeight
+  return line
+}
+
+async function runBuildVerify() {
+  if (buildRunning) return
+  buildRunning = true
+  const out = document.getElementById("terminal-output")
+  const rerunBtn = document.getElementById("build-rerun")
+  if (out) out.innerHTML = ""
+  if (rerunBtn) rerunBtn.disabled = true
+
+  termLine("$ jarvis verify-build --env staging", "term-cmd")
+  flashJarvis("running build verification")
+
+  try {
+    const result = await apiSend(API.buildVerify, "POST", {})
+    const steps = result.steps || []
+    // Stream each step with a small delay for a live terminal feel.
+    for (const step of steps) {
+      const pending = termLine(`▸ ${step.name}…`, "term-pending")
+      await delay(420)
+      if (pending) {
+        const mark = step.status === "passed" ? "✓" : step.status === "failed" ? "✕" : "⊘"
+        pending.textContent = `${mark} ${step.name} — ${step.detail}`
+        pending.className = `term-line term-${step.status}`
+      }
+    }
+    await delay(200)
+    if (result.success) {
+      termLine("", "")
+      termLine("✓ Build verified — staging is ready to deploy.", "term-success")
+      toast("Build passed", "success")
+    } else {
+      termLine("", "")
+      termLine("✕ Build failed — resolve failing steps before deploy.", "term-fail")
+      toast("Build failed", "error")
+    }
+  } catch (err) {
+    termLine(`✕ verify-build error: ${err.message}`, "term-fail")
+    toast("Build run failed", "error")
+  } finally {
+    buildRunning = false
+    if (rerunBtn) rerunBtn.disabled = false
+    flashJarvis("listening · agent CLI bridge")
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function renderServices(services = []) {
@@ -408,10 +726,39 @@ function wireControls(board) {
   document.getElementById("archive-board-btn")?.addEventListener("click", () => flashJarvis("archive current board"))
 
   document.querySelectorAll(".qa-btn").forEach((btn) => {
-    btn.addEventListener("click", () => flashJarvis(`dispatching: ${btn.dataset.action}`))
+    btn.addEventListener("click", () => {
+      if (btn.dataset.action === "verify-build") openBuildModal()
+      else flashJarvis(`dispatching: ${btn.dataset.action}`)
+    })
   })
 
   wireActivityCollapse()
+}
+
+// One-time wiring for the Attention + Build modals (open/close + overlays).
+let phase4Wired = false
+function wirePhase4Modals() {
+  if (phase4Wired) return
+  phase4Wired = true
+
+  document.getElementById("needs-attention-btn")?.addEventListener("click", openAttentionModal)
+  document.getElementById("attention-close")?.addEventListener("click", closeAttentionModal)
+  document.getElementById("attention-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "attention-modal") closeAttentionModal()
+  })
+
+  document.getElementById("build-close")?.addEventListener("click", closeBuildModal)
+  document.getElementById("build-cancel")?.addEventListener("click", closeBuildModal)
+  document.getElementById("build-rerun")?.addEventListener("click", runBuildVerify)
+  document.getElementById("build-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "build-modal" && !buildRunning) closeBuildModal()
+  })
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return
+    if (!document.getElementById("attention-modal")?.hidden) closeAttentionModal()
+    if (!document.getElementById("build-modal")?.hidden && !buildRunning) closeBuildModal()
+  })
 }
 
 /* -------------------- Agent Activity collapse -------------------------- */
@@ -703,6 +1050,7 @@ async function refreshBoardData() {
   renderNextSteps(board.nextSteps || [])
   renderBoard(board)
   renderActivity(board.activity || [])
+  updateAttentionBadge()
   if (selectedCardId) selectCard(selectedCardId)
 }
 
@@ -746,9 +1094,11 @@ async function init() {
     renderBoard(board)
     renderActivity(board.activity || [])
     renderServices(services)
+    updateAttentionBadge()
     wireControls(board)
     wireMenuAndModal()
     wireKeyboardShortcuts()
+    wirePhase4Modals()
     if (selectedCardId) selectCard(selectedCardId)
     flashJarvis("connected · agent CLI bridge")
     console.log("[v0] TaskBoardAI rendered:", board.projectName)
