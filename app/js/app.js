@@ -3,7 +3,7 @@
  * -------------------------------------------------------------------------
  * This module fetches the active board from the Express backend and renders
  * the bento dashboard. In production the endpoints below are served by your
- * real Express server on port 3001, reading/writing
+ * real Express server (PORT env, default 8080), reading/writing
  * `.cursor/boards/msc-website-v9.json`. The v0 preview server mocks the same
  * routes so the UI renders identically here.
  *
@@ -327,7 +327,7 @@ async function init() {
     console.log("[v0] Failed to initialize board:", err.message)
     const boardEl = document.getElementById("board")
     if (boardEl) {
-      boardEl.innerHTML = `<div class="board-loading">Unable to reach the board API. Ensure the Express backend is running on port 3001.</div>`
+      boardEl.innerHTML = `<div class="board-loading">Unable to reach the board API. Ensure the Express backend is running.</div>`
     }
   }
 }
