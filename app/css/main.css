@@ -634,6 +634,7 @@ body::before {
 }
 
 .agent-avatar {
+  position: relative;
   display: grid;
   place-items: center;
   width: 34px;
@@ -692,16 +693,36 @@ body::before {
   padding: 24px 12px;
 }
 
-/* ---------- Interactive feed: status color-coding ---------- */
-.activity-item {
-  border-left: 3px solid transparent;
+/* ---------- Interactive feed: subtle status dot ---------- */
+/* A small presence-style dot on the avatar replaces the old colored
+   full-height left borders for a cleaner, less cluttered look. */
+.activity-item .agent-avatar::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  border: 2px solid var(--bg-deep);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
-.activity-item.status-pending { border-left-color: var(--signal-warn); }
-.activity-item.status-approved { border-left-color: var(--signal-online); }
-.activity-item.status-rejected { border-left-color: var(--signal-offline); }
-.activity-item.status-done { border-left-color: var(--rail-done); }
-.activity-item.is-live {
-  background: rgba(245, 197, 66, 0.04);
+.activity-item.status-pending .agent-avatar::after { background: var(--signal-warn); }
+.activity-item.status-approved .agent-avatar::after { background: var(--signal-online); }
+.activity-item.status-rejected .agent-avatar::after { background: var(--signal-offline); }
+.activity-item.status-done .agent-avatar::after { background: var(--rail-done); }
+
+/* Live items get a soft glowing, pulsing dot instead of a tinted panel. */
+.activity-item.is-live .agent-avatar::after {
+  background: var(--signal-online);
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+  animation: dot-pulse 2s ease-out infinite;
+}
+@keyframes dot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
 }
 
 /* Status pill (right of agent name) */
