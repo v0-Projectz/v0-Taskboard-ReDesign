@@ -246,6 +246,43 @@ app.post("/api/build/verify", (_req, res) => {
   })
 })
 
+/* ----------------------------- System HUD ------------------------------ */
+const bootedAt = Date.now()
+// Small smooth random-walk helper so the HUD gauges drift naturally.
+function drift(prev, min, max, step) {
+  const next = prev + (Math.random() * 2 - 1) * step
+  return Math.max(min, Math.min(max, next))
+}
+let hud = { cpu: 34, mem: 58, gpu: 47, net: 22 }
+
+app.get("/api/system/stats", (_req, res) => {
+  hud = {
+    cpu: drift(hud.cpu, 8, 96, 9),
+    mem: drift(hud.mem, 35, 88, 5),
+    gpu: drift(hud.gpu, 12, 99, 12),
+    net: drift(hud.net, 2, 90, 14),
+  }
+  // Derive agent workload from the live board so the HUD stays connected.
+  const cards = board.cards || []
+  const activeAgents = cards.filter(
+    (c) => c.assignee?.type === "agent" && (c.agentStatus === "working" || c.agentStatus === "running"),
+  ).length
+  const queued = cards.filter((c) => c.agentStatus === "queued").length
+  const errors = cards.filter((c) => c.agentStatus === "error").length
+  const uptimeSec = Math.floor((Date.now() - bootedAt) / 1000)
+  res.json({
+    cpu: Math.round(hud.cpu),
+    mem: Math.round(hud.mem),
+    gpu: Math.round(hud.gpu),
+    net: Math.round(hud.net),
+    activeAgents,
+    queued,
+    errors,
+    totalTasks: cards.length,
+    uptimeSec,
+  })
+})
+
 /* --------------------------- Static assets ----------------------------- */
 app.use(express.static(join(__dirname, "app")))
 

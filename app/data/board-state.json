@@ -1,0 +1,365 @@
+{
+  "projectName": "MyStudioChannel v9.0.0",
+  "boardFile": ".cursor/boards/msc-website-v9.json",
+  "nextSteps": [
+    "Wire the Hermes render queue into the campaign publisher pipeline.",
+    "Finalize the glassmorphic media bay layout and ship to staging.",
+    "Run end-to-end verification on ComfyUI image generation hooks."
+  ],
+  "columns": [
+    {
+      "id": "backlog",
+      "name": "Backlog",
+      "hue": "todo"
+    },
+    {
+      "id": "ready",
+      "name": "Ready",
+      "hue": "ready"
+    },
+    {
+      "id": "in-progress",
+      "name": "In Progress",
+      "hue": "in-progress"
+    },
+    {
+      "id": "done",
+      "name": "Done",
+      "hue": "done"
+    }
+  ],
+  "cards": [
+    {
+      "id": "card-001",
+      "title": "Brand system tokens",
+      "content": "Define Studio Gold palette and dark-glass surface layering across all panels.",
+      "columnId": "done",
+      "assignee": {
+        "type": "human",
+        "name": "Tony"
+      },
+      "priority": "medium",
+      "agentStatus": "done",
+      "subtasks": [
+        {
+          "title": "Color variables",
+          "done": true
+        },
+        {
+          "title": "Glass borders",
+          "done": true
+        }
+      ],
+      "tags": [
+        "design",
+        "system"
+      ],
+      "dependencies": [],
+      "hermesTaskId": "HRM-2201"
+    },
+    {
+      "id": "card-002",
+      "title": "Production header bar",
+      "content": "Build the wide-tracked title, board switcher and high-gloss control cluster.",
+      "columnId": "done",
+      "assignee": {
+        "type": "human",
+        "name": "Tony"
+      },
+      "priority": "medium",
+      "agentStatus": "done",
+      "subtasks": [
+        {
+          "title": "Board switcher",
+          "done": true
+        },
+        {
+          "title": "Control buttons",
+          "done": true
+        }
+      ],
+      "tags": [
+        "ui",
+        "header"
+      ],
+      "dependencies": [
+        "card-001"
+      ],
+      "hermesTaskId": "HRM-2202"
+    },
+    {
+      "id": "card-003",
+      "title": "Kanban glass bays",
+      "content": "Style columns as vertical frosted bays with individual translucent hues. Owned by @Cartographer for layout indexing.",
+      "columnId": "in-progress",
+      "assignee": {
+        "type": "agent",
+        "name": "Cartographer"
+      },
+      "priority": "high",
+      "agentStatus": "active",
+      "subtasks": [
+        {
+          "title": "Column hues",
+          "done": true
+        },
+        {
+          "title": "Drag feedback",
+          "done": false
+        },
+        {
+          "title": "Drop scaling",
+          "done": false
+        }
+      ],
+      "tags": [
+        "ui",
+        "kanban"
+      ],
+      "dependencies": [
+        "card-001"
+      ],
+      "hermesTaskId": "HRM-2210"
+    },
+    {
+      "id": "card-004",
+      "title": "Agent activity feed",
+      "content": "Hydrate the right bento panel with real-time agent executions and avatars via @Hermes.",
+      "columnId": "in-progress",
+      "assignee": {
+        "type": "agent",
+        "name": "Hermes"
+      },
+      "priority": "high",
+      "agentStatus": "awaiting",
+      "subtasks": [
+        {
+          "title": "Feed list",
+          "done": true
+        },
+        {
+          "title": "Agent avatars",
+          "done": false
+        }
+      ],
+      "tags": [
+        "agents",
+        "feed"
+      ],
+      "dependencies": [
+        "card-002"
+      ],
+      "hermesTaskId": "HRM-2215"
+    },
+    {
+      "id": "card-005",
+      "title": "J.A.R.V.I.S. command bar",
+      "content": "Footer console with voice waveform and live service health capsules.",
+      "columnId": "ready",
+      "assignee": {
+        "type": "human",
+        "name": "Tony"
+      },
+      "priority": "medium",
+      "agentStatus": "queued",
+      "subtasks": [
+        {
+          "title": "Waveform indicator",
+          "done": false
+        },
+        {
+          "title": "Service monitors",
+          "done": false
+        }
+      ],
+      "tags": [
+        "console",
+        "footer"
+      ],
+      "dependencies": [
+        "card-002"
+      ],
+      "hermesTaskId": "HRM-2220"
+    },
+    {
+      "id": "card-006",
+      "title": "Campaign publisher",
+      "content": "Connect Create Campaign action to the Postiz scheduling endpoint via @Postiz.",
+      "columnId": "ready",
+      "assignee": {
+        "type": "agent",
+        "name": "Postiz"
+      },
+      "priority": "medium",
+      "agentStatus": "queued",
+      "subtasks": [
+        {
+          "title": "Postiz auth",
+          "done": false
+        }
+      ],
+      "tags": [
+        "integration",
+        "postiz"
+      ],
+      "dependencies": [
+        "card-005"
+      ],
+      "hermesTaskId": "HRM-2230"
+    },
+    {
+      "id": "card-007",
+      "title": "ComfyUI render hooks",
+      "content": "Generate Image shortcut should dispatch jobs to the ComfyUI graph via @ComfyUI.",
+      "columnId": "backlog",
+      "assignee": {
+        "type": "agent",
+        "name": "ComfyUI"
+      },
+      "priority": "high",
+      "agentStatus": "error",
+      "subtasks": [
+        {
+          "title": "Job schema",
+          "done": false
+        },
+        {
+          "title": "Webhook receiver",
+          "done": false
+        }
+      ],
+      "tags": [
+        "integration",
+        "comfyui"
+      ],
+      "dependencies": [
+        "card-006"
+      ],
+      "hermesTaskId": "HRM-2240"
+    },
+    {
+      "id": "card-008",
+      "title": "Build verification suite",
+      "content": "Verify Build action runs the full lint + e2e gate before deploy.",
+      "columnId": "backlog",
+      "assignee": {
+        "type": "agent",
+        "name": "Sentinel"
+      },
+      "priority": "low",
+      "agentStatus": "queued",
+      "subtasks": [],
+      "tags": [
+        "ci",
+        "quality"
+      ],
+      "dependencies": [
+        "card-003"
+      ],
+      "hermesTaskId": "HRM-2250"
+    },
+    {
+      "id": "card-009",
+      "title": "Custom scrollbars",
+      "content": "Thin glowing scrollbars across columns and feed panels.",
+      "columnId": "backlog",
+      "assignee": {
+        "type": "human",
+        "name": "Tony"
+      },
+      "priority": "low",
+      "agentStatus": "queued",
+      "subtasks": [],
+      "tags": [
+        "ui",
+        "polish"
+      ],
+      "dependencies": [
+        "card-003"
+      ],
+      "hermesTaskId": "HRM-2255"
+    }
+  ],
+  "activity": [
+    {
+      "id": "act-001",
+      "agent": "Hermes",
+      "initials": "HM",
+      "action": "queued render job HRM-2240",
+      "time": "just now",
+      "live": true,
+      "requiresApproval": true,
+      "status": "pending",
+      "details": [
+        "[queue] accepted job HRM-2240 from ComfyUI graph",
+        "[queue] priority=high, retries=0",
+        "[queue] awaiting human approval to dispatch to render farm"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-002",
+      "agent": "Cartographer",
+      "initials": "CG",
+      "action": "indexed 12 media assets",
+      "time": "2m ago",
+      "live": false,
+      "requiresApproval": false,
+      "status": "done",
+      "details": [
+        "[scan] traversed /media/library (12 new assets)",
+        "[index] embedded 12 thumbnails",
+        "[index] committed to vector store in 1.8s"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-003",
+      "agent": "Postiz",
+      "initials": "PZ",
+      "action": "scheduled campaign draft",
+      "time": "6m ago",
+      "live": false,
+      "requiresApproval": true,
+      "status": "pending",
+      "details": [
+        "[draft] generated 3 social variants",
+        "[schedule] proposed window: Fri 09:00 PT",
+        "[schedule] awaiting approval before publish"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-004",
+      "agent": "Sentinel",
+      "initials": "SN",
+      "action": "passed build gate on staging",
+      "time": "11m ago",
+      "live": false,
+      "requiresApproval": false,
+      "status": "done",
+      "details": [
+        "[lint] 0 errors, 0 warnings",
+        "[e2e] 48 passed, 0 failed",
+        "[gate] staging deploy approved"
+      ],
+      "comments": []
+    },
+    {
+      "id": "act-005",
+      "agent": "LiteLLM",
+      "initials": "LL",
+      "action": "completed 3 completions",
+      "time": "18m ago",
+      "live": false,
+      "requiresApproval": false,
+      "status": "done",
+      "details": [
+        "[llm] model=gpt-4o-mini, tokens=2,418",
+        "[llm] 3 completions, avg latency 740ms",
+        "[llm] cache hit ratio 33%"
+      ],
+      "comments": []
+    }
+  ]
+}

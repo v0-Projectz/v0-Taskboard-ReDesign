@@ -18,6 +18,7 @@ const API = {
   tasks: "/api/tasks",
   feed: "/api/feed",
   buildVerify: "/api/build/verify",
+  systemStats: "/api/system/stats",
 }
 
 // Current board cached in memory so menus/shortcuts can look cards up.
@@ -118,6 +119,65 @@ async function fetchServices() {
       { name: "Hermes", port: 8642, status: "online" },
     ]
   }
+}
+
+/* --------------------------- System HUD -------------------------------- */
+let hudTimer = null
+
+async function fetchSystemStats() {
+  try {
+    const res = await fetch(API.systemStats, { headers: { Accept: "application/json" } })
+    if (!res.ok) throw new Error()
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+function formatUptime(sec = 0) {
+  const h = String(Math.floor(sec / 3600)).padStart(2, "0")
+  const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0")
+  const s = String(sec % 60).padStart(2, "0")
+  return `${h}:${m}:${s}`
+}
+
+function setGauge(metric, value) {
+  const bar = document.getElementById(`hud-${metric}-bar`)
+  const val = document.getElementById(`hud-${metric}-val`)
+  if (bar) {
+    bar.style.width = `${value}%`
+    // Shift the bar toward the warning/critical color as it fills.
+    bar.classList.toggle("warn", value >= 70 && value < 88)
+    bar.classList.toggle("crit", value >= 88)
+  }
+  if (val) val.textContent = `${value}%`
+}
+
+function renderSystemStats(stats) {
+  if (!stats) return
+  setGauge("cpu", stats.cpu)
+  setGauge("mem", stats.mem)
+  setGauge("gpu", stats.gpu)
+  setGauge("net", stats.net)
+  const set = (id, v) => {
+    const node = document.getElementById(id)
+    if (node) node.textContent = String(v)
+  }
+  set("hud-agents", stats.activeAgents)
+  set("hud-queued", stats.queued)
+  set("hud-errors", stats.errors)
+  const up = document.getElementById("hud-uptime")
+  if (up) up.textContent = formatUptime(stats.uptimeSec)
+  const hud = document.getElementById("system-hud")
+  if (hud) hud.classList.toggle("has-errors", stats.errors > 0)
+}
+
+// Poll the HUD on a light interval so the gauges feel alive.
+function startSystemHud() {
+  if (hudTimer) return
+  const tick = async () => renderSystemStats(await fetchSystemStats())
+  tick()
+  hudTimer = setInterval(tick, 2500)
 }
 
 /* ------------------------------ Rendering ------------------------------ */
@@ -1103,6 +1163,7 @@ async function init() {
     wireMenuAndModal()
     wireKeyboardShortcuts()
     wirePhase4Modals()
+    startSystemHud()
     if (selectedCardId) selectCard(selectedCardId)
     flashJarvis("connected · agent CLI bridge")
     console.log("[v0] TaskBoardAI rendered:", board.projectName)

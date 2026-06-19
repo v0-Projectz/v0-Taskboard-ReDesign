@@ -240,6 +240,38 @@
       <button class="menu-item danger" data-act="delete" role="menuitem" type="button">Delete Task</button>
     </div>
 
+    <!-- ===================== SystemStats HUD ========================= -->
+    <aside class="system-hud" id="system-hud" aria-label="System status">
+      <div class="hud-head">
+        <span class="hud-reticle" aria-hidden="true"></span>
+        <span class="hud-title">SYSTEM</span>
+        <span class="hud-uptime" id="hud-uptime">00:00:00</span>
+      </div>
+      <div class="hud-gauges">
+        <div class="hud-gauge" data-metric="cpu">
+          <div class="hud-gauge-top"><span class="hud-gauge-label">CPU</span><span class="hud-gauge-val" id="hud-cpu-val">0%</span></div>
+          <div class="hud-track"><span class="hud-fill" id="hud-cpu-bar"></span></div>
+        </div>
+        <div class="hud-gauge" data-metric="mem">
+          <div class="hud-gauge-top"><span class="hud-gauge-label">MEM</span><span class="hud-gauge-val" id="hud-mem-val">0%</span></div>
+          <div class="hud-track"><span class="hud-fill" id="hud-mem-bar"></span></div>
+        </div>
+        <div class="hud-gauge" data-metric="gpu">
+          <div class="hud-gauge-top"><span class="hud-gauge-label">GPU</span><span class="hud-gauge-val" id="hud-gpu-val">0%</span></div>
+          <div class="hud-track"><span class="hud-fill" id="hud-gpu-bar"></span></div>
+        </div>
+        <div class="hud-gauge" data-metric="net">
+          <div class="hud-gauge-top"><span class="hud-gauge-label">NET</span><span class="hud-gauge-val" id="hud-net-val">0%</span></div>
+          <div class="hud-track"><span class="hud-fill" id="hud-net-bar"></span></div>
+        </div>
+      </div>
+      <div class="hud-readouts">
+        <div class="hud-readout"><span class="hud-readout-val" id="hud-agents">0</span><span class="hud-readout-label">Active</span></div>
+        <div class="hud-readout"><span class="hud-readout-val" id="hud-queued">0</span><span class="hud-readout-label">Queued</span></div>
+        <div class="hud-readout error"><span class="hud-readout-val" id="hud-errors">0</span><span class="hud-readout-label">Errors</span></div>
+      </div>
+    </aside>
+
     <!-- ===================== Needs Attention Inbox ==================== -->
     <div class="modal-overlay" id="attention-modal" hidden>
       <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="attention-title">
