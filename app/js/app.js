@@ -227,8 +227,10 @@ function renderCard(card) {
     "data-priority": card.priority || "medium",
   })
 
-  // Header row: title + three-dot menu trigger.
+  // Header row: subtle priority dot + title + three-dot menu trigger.
   const head = el("div", "card-head")
+  const prio = card.priority || "medium"
+  head.appendChild(el("span", `priority-dot prio-${prio}`, { title: `${prio[0].toUpperCase()}${prio.slice(1)} priority` }))
   head.appendChild(el("h3", "card-title", { text: card.title || "Untitled" }))
   const menuBtn = el("button", "card-menu-btn", {
     type: "button",

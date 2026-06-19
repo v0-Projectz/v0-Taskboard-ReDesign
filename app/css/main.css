@@ -1239,9 +1239,18 @@ body::before {
 .status-badge.done .s-dot { background: var(--rail-done); }
 
 /* Priority left accent */
-.card[data-priority="high"] { border-left: 2px solid var(--signal-offline); }
-.card[data-priority="medium"] { border-left: 2px solid var(--studio-gold); }
-.card[data-priority="low"] { border-left: 2px solid rgba(159, 159, 169, 0.4); }
+/* Subtle priority dot in the card head (replaces full-height side borders). */
+.priority-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.priority-dot.prio-high { background: var(--signal-offline); box-shadow: 0 0 6px rgba(239, 68, 68, 0.45); }
+.priority-dot.prio-medium { background: var(--studio-gold); box-shadow: 0 0 6px rgba(245, 184, 65, 0.4); }
+.priority-dot.prio-low { background: rgba(159, 159, 169, 0.5); }
 
 /* ---------------------------- Context menu ----------------------------- */
 .context-menu {
