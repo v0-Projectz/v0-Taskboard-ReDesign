@@ -175,10 +175,22 @@ function renderSystemStats(stats) {
 // Poll the HUD on a light interval so the gauges feel alive.
 function startSystemHud() {
   wireHudToggle()
-  if (hudTimer) return
+  // One immediate paint, then continuous polling only if the setting allows.
   const tick = async () => renderSystemStats(await fetchSystemStats())
   tick()
-  hudTimer = setInterval(tick, 2500)
+  if (settings.livePolling) setLivePolling(true)
+}
+
+// Start/stop the HUD polling interval (driven by the Settings toggle).
+function setLivePolling(enabled) {
+  if (enabled) {
+    if (hudTimer) return
+    const tick = async () => renderSystemStats(await fetchSystemStats())
+    hudTimer = setInterval(tick, 2500)
+  } else if (hudTimer) {
+    clearInterval(hudTimer)
+    hudTimer = null
+  }
 }
 
 // Collapse/expand the HUD body via the header toggle.
@@ -192,6 +204,116 @@ function wireHudToggle() {
   toggle.addEventListener("click", () => {
     const collapsed = hud.classList.toggle("collapsed")
     toggle.setAttribute("aria-expanded", String(!collapsed))
+  })
+}
+
+/* ------------------------------ Settings ------------------------------- */
+const SETTINGS_KEY = "msc.settings.v1"
+const DEFAULT_SETTINGS = {
+  showHud: true,
+  showNextSteps: true,
+  reduceMotion: false,
+  livePolling: true,
+  compact: false,
+}
+let settings = { ...DEFAULT_SETTINGS }
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (raw) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+  } catch {
+    settings = { ...DEFAULT_SETTINGS }
+  }
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  } catch {
+    /* storage unavailable — settings stay in-memory for the session */
+  }
+}
+
+// Reflect a single setting in the live UI.
+function applySetting(key) {
+  const v = settings[key]
+  switch (key) {
+    case "showHud": {
+      const hud = document.getElementById("system-hud")
+      if (hud) hud.style.display = v ? "" : "none"
+      break
+    }
+    case "showNextSteps": {
+      const panel = document.querySelector('aside.panel[aria-label="Next steps"]')
+      if (panel) panel.style.display = v ? "" : "none"
+      break
+    }
+    case "reduceMotion":
+      document.body.classList.toggle("reduce-motion", v)
+      break
+    case "compact":
+      document.body.classList.toggle("compact", v)
+      break
+    case "livePolling":
+      setLivePolling(v)
+      break
+  }
+}
+
+function applyAllSettings() {
+  Object.keys(settings).forEach(applySetting)
+}
+
+// Sync the switch buttons in the modal to the current settings.
+function syncSettingsUI() {
+  document.querySelectorAll("#settings-modal .switch").forEach((sw) => {
+    const key = sw.dataset.setting
+    sw.setAttribute("aria-checked", String(!!settings[key]))
+  })
+}
+
+function openSettingsModal() {
+  const modal = document.getElementById("settings-modal")
+  if (!modal) return
+  syncSettingsUI()
+  modal.hidden = false
+}
+
+function closeSettingsModal() {
+  const modal = document.getElementById("settings-modal")
+  if (modal) modal.hidden = true
+}
+
+let settingsWired = false
+function wireSettings() {
+  if (settingsWired) return
+  settingsWired = true
+
+  document.querySelectorAll("#settings-modal .switch").forEach((sw) => {
+    sw.addEventListener("click", () => {
+      const key = sw.dataset.setting
+      settings[key] = !settings[key]
+      sw.setAttribute("aria-checked", String(settings[key]))
+      applySetting(key)
+      saveSettings()
+    })
+  })
+
+  document.getElementById("settings-close")?.addEventListener("click", closeSettingsModal)
+  document.getElementById("settings-done")?.addEventListener("click", closeSettingsModal)
+  document.getElementById("settings-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "settings-modal") closeSettingsModal()
+  })
+  document.getElementById("settings-reset")?.addEventListener("click", () => {
+    settings = { ...DEFAULT_SETTINGS }
+    applyAllSettings()
+    syncSettingsUI()
+    saveSettings()
+    flashJarvis("settings restored to defaults")
+  })
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !document.getElementById("settings-modal")?.hidden) closeSettingsModal()
   })
 }
 
@@ -567,7 +689,7 @@ function openAttentionModal() {
         closeAttentionModal()
         openTaskModal({ cardId: c.id })
       })
-      row.append(info, view)
+      row.append(el("span", "attention-dot", { "aria-hidden": "true" }), info, view)
       body.appendChild(row)
     })
   }
@@ -592,7 +714,7 @@ function openAttentionModal() {
         refreshAttentionModal()
       })
       actions.append(approve, reject)
-      row.append(info, actions)
+      row.append(el("span", "attention-dot", { "aria-hidden": "true" }), info, actions)
       body.appendChild(row)
     })
   }
@@ -802,7 +924,7 @@ function wireControls(board) {
   document.getElementById("board-selector")?.addEventListener("click", () => {
     flashJarvis("board switcher · connect to /api/boards")
   })
-  document.getElementById("settings-btn")?.addEventListener("click", () => flashJarvis("settings panel"))
+  document.getElementById("settings-btn")?.addEventListener("click", openSettingsModal)
   document.getElementById("load-board-btn")?.addEventListener("click", () => flashJarvis("load board dialog"))
   document.getElementById("archive-board-btn")?.addEventListener("click", () => flashJarvis("archive current board"))
 
@@ -1166,6 +1288,7 @@ function renderBoardError(message) {
 
 async function init() {
   flashJarvis("connecting to backend…")
+  loadSettings()
   renderBoardSkeleton()
   try {
     const [board, services] = await Promise.all([fetchBoard(), fetchServices()])
@@ -1180,7 +1303,9 @@ async function init() {
     wireMenuAndModal()
     wireKeyboardShortcuts()
     wirePhase4Modals()
+    wireSettings()
     startSystemHud()
+    applyAllSettings()
     if (selectedCardId) selectCard(selectedCardId)
     flashJarvis("connected · agent CLI bridge")
     console.log("[v0] TaskBoardAI rendered:", board.projectName)

@@ -318,6 +318,79 @@
       </div>
     </div>
 
+    <!-- ===================== Settings ================================ -->
+    <div class="modal-overlay" id="settings-modal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-head">
+          <h2 class="modal-title" id="settings-title">Settings</h2>
+          <button class="modal-close" id="settings-close" type="button" aria-label="Close dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="settings-body" id="settings-body">
+          <div class="settings-group-label">Interface</div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Show System HUD</span>
+              <span class="setting-desc">Display the live CPU / MEM / GPU / NET panel.</span>
+            </div>
+            <button class="switch" role="switch" type="button" aria-checked="true" data-setting="showHud" aria-label="Show System HUD">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Show Next Steps</span>
+              <span class="setting-desc">Show the guided next-steps column on the left.</span>
+            </div>
+            <button class="switch" role="switch" type="button" aria-checked="true" data-setting="showNextSteps" aria-label="Show Next Steps">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Reduce motion</span>
+              <span class="setting-desc">Disable pulses, glows, and transition animations.</span>
+            </div>
+            <button class="switch" role="switch" type="button" aria-checked="false" data-setting="reduceMotion" aria-label="Reduce motion">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+
+          <div class="settings-group-label">Live data</div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Live system polling</span>
+              <span class="setting-desc">Continuously refresh the System HUD gauges.</span>
+            </div>
+            <button class="switch" role="switch" type="button" aria-checked="true" data-setting="livePolling" aria-label="Live system polling">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Compact density</span>
+              <span class="setting-desc">Tighten spacing across cards and panels.</span>
+            </div>
+            <button class="switch" role="switch" type="button" aria-checked="false" data-setting="compact" aria-label="Compact density">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="ctrl-btn" id="settings-reset">Reset to defaults</button>
+          <button type="button" class="ctrl-btn primary" id="settings-done">Done</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ===================== Toast notifications ===================== -->
     <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
