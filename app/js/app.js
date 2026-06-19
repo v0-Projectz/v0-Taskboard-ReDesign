@@ -174,10 +174,25 @@ function renderSystemStats(stats) {
 
 // Poll the HUD on a light interval so the gauges feel alive.
 function startSystemHud() {
+  wireHudToggle()
   if (hudTimer) return
   const tick = async () => renderSystemStats(await fetchSystemStats())
   tick()
   hudTimer = setInterval(tick, 2500)
+}
+
+// Collapse/expand the HUD body via the header toggle.
+let hudToggleWired = false
+function wireHudToggle() {
+  if (hudToggleWired) return
+  const hud = document.getElementById("system-hud")
+  const toggle = document.getElementById("hud-toggle")
+  if (!hud || !toggle) return
+  hudToggleWired = true
+  toggle.addEventListener("click", () => {
+    const collapsed = hud.classList.toggle("collapsed")
+    toggle.setAttribute("aria-expanded", String(!collapsed))
+  })
 }
 
 /* ------------------------------ Rendering ------------------------------ */

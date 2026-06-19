@@ -1599,34 +1599,68 @@ textarea.field-input { resize: vertical; min-height: 64px; font-family: var(--fo
 .system-hud {
   position: fixed;
   left: 18px;
-  bottom: 84px;
+  bottom: 104px;
   z-index: 40;
   width: 220px;
-  padding: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   border: 1px solid var(--glass-gold-border);
   border-radius: var(--radius-md);
-  background: var(--glass-bg);
+  /* Solid backing so panel content never bleeds through the HUD. */
+  background: rgba(13, 13, 17, 0.94);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 12px 40px rgba(0, 0, 0, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   font-family: var(--font-mono);
+  transition: gap 0.25s ease;
 }
 .system-hud.has-errors {
   border-color: rgba(239, 68, 68, 0.4);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 12px 40px rgba(0, 0, 0, 0.6),
     0 0 22px rgba(239, 68, 68, 0.18);
 }
 
+/* Header doubles as the show/hide toggle button. */
 .hud-head {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+.hud-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
+  transition: transform 0.25s ease;
+}
+.system-hud.collapsed { gap: 0; }
+.system-hud.collapsed .hud-chevron { transform: rotate(-90deg); }
+
+/* Collapsible body: gauges + readouts. */
+.hud-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  max-height: 320px;
+  opacity: 1;
+  transition: max-height 0.28s ease, opacity 0.2s ease;
+}
+.system-hud.collapsed .hud-body {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 .hud-reticle {
   width: 12px;

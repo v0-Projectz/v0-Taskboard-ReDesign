@@ -86,7 +86,7 @@
             <span class="panel-badge" id="next-steps-count">0</span>
           </div>
           <ol class="next-steps-list"></ol>
-          <div class="sidebar-footnote">guided by J.A.R.V.I.S. planning core</div>
+          <div class="sidebar-footnote">guided by J.A.R.V.I.S. planning</div>
         </aside>
 
         <!-- Center: Kanban Board -->
@@ -242,11 +242,15 @@
 
     <!-- ===================== SystemStats HUD ========================= -->
     <aside class="system-hud" id="system-hud" aria-label="System status">
-      <div class="hud-head">
+      <button class="hud-head" id="hud-toggle" type="button" aria-expanded="true" aria-controls="hud-body" title="Show/hide system stats">
         <span class="hud-reticle" aria-hidden="true"></span>
         <span class="hud-title">SYSTEM</span>
         <span class="hud-uptime" id="hud-uptime">00:00:00</span>
-      </div>
+        <svg class="hud-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      <div class="hud-body" id="hud-body">
       <div class="hud-gauges">
         <div class="hud-gauge" data-metric="cpu">
           <div class="hud-gauge-top"><span class="hud-gauge-label">CPU</span><span class="hud-gauge-val" id="hud-cpu-val">0%</span></div>
@@ -269,6 +273,7 @@
         <div class="hud-readout"><span class="hud-readout-val" id="hud-agents">0</span><span class="hud-readout-label">Active</span></div>
         <div class="hud-readout"><span class="hud-readout-val" id="hud-queued">0</span><span class="hud-readout-label">Queued</span></div>
         <div class="hud-readout error"><span class="hud-readout-val" id="hud-errors">0</span><span class="hud-readout-label">Errors</span></div>
+      </div>
       </div>
     </aside>
 
