@@ -250,7 +250,11 @@ function renderBoard(board) {
     column.appendChild(head)
 
     // Quick "+ New Task" button seeded with this column.
-    const addBtn = el("button", "add-task-btn", { type: "button", "data-add-column": col.id })
+    const addBtn = el("button", "add-task-btn", {
+      type: "button",
+      "data-add-column": col.id,
+      title: `Add a task to ${col.name || "this column"} (press N)`,
+    })
     addBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg> New Task`
     addBtn.addEventListener("click", () => openTaskModal({ columnId: col.id }))
     column.appendChild(addBtn)
